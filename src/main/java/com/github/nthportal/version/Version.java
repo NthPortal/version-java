@@ -55,10 +55,11 @@ public class Version<T extends Enum<T>> implements Comparable<Version<T>> {
     }
 
     @Override
-    public int compareTo(Version o) {
-        return (major != o.major) ? Integer.compare(major, o.major)
+    public int compareTo(Version<T> o) {
+        return  (major != o.major)    ? Integer.compare(major, o.major)
                 : ((minor != o.minor) ? Integer.compare(minor, o.minor)
-                : Integer.compare(patch, o.patch)   );
+                : ((patch != o.patch) ? Integer.compare(patch, o.patch)
+                : type.compareTo(o.type)                            ));
     }
 
     public Checker<T> checker() {
