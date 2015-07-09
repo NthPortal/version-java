@@ -21,7 +21,7 @@ public class Version<T extends Enum<T>> implements Comparable<Version<T>> {
     @Override
     public String toString() {
         return major + "." + minor + "." + patch +
-                (defaultType ? "" : ("-" + type.name()) );
+                (defaultType ? "" : ("-" + type.toString()));
     }
 
     @Override

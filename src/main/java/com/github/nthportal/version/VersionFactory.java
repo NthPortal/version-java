@@ -40,7 +40,7 @@ public class VersionFactory<T extends Enum<T>> {
             throw new VersionParseException(null);
         }
 
-        String[] split = versionString.split("\\.");
+        String[] split = versionString.split("\\.", 3);
         if (split.length != 3) {
             throw new VersionParseException(versionString);
         }
