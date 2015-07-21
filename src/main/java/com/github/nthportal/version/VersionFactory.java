@@ -33,39 +33,40 @@ SOFTWARE.
 
 package com.github.nthportal.version;
 
+import com.github.nthportal.version.type.MavenType;
+
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Optional;
 
 public class VersionFactory<T extends Enum<T>> {
-    private final Class<T> tClass;
     private final T defaultType;
+    private final VersionTypeParser<T> parser;
+    private final Comparator<T> comparator;
 
-    private VersionFactory(Class<T> tClass) {
-        this(tClass, Collections.max(Arrays.asList(tClass.getEnumConstants())));
+    private VersionFactory(T defaultType, VersionTypeParser<T> parser, Comparator<T> comparator) {
+        this.defaultType = defaultType;
+        this.parser = parser;
+        this.comparator = comparator;
     }
 
-    private VersionFactory(Class<T> tClass, T defaultType) {
-        this.tClass = tClass;
-        this.defaultType = defaultType;
+    public static <T extends Enum<T>> Builder<T> builder(Class<T> tClass) {
+        return new Builder<>(tClass);
     }
 
     public static <T extends Enum<T>> VersionFactory<T> ofEnum(Class<T> tClass) {
-        return new VersionFactory<>(tClass);
+        return new Builder<>(tClass).build();
     }
 
-    public static <T extends Enum<T>> VersionFactory<T> withDefault(Class<T> tClass, T defaultType) {
-        return new VersionFactory<>(tClass, defaultType);
-    }
-
-    public static VersionFactory<MavenVersion> mavenVersionFactory() {
-        return new VersionFactory<>(MavenVersion.class);
+    public static VersionFactory<MavenType> mavenFactory() {
+        return new Builder<>(MavenType.class).build();
     }
 
     public Version<T> create(int major, int minor, int patch, T type) throws IllegalArgumentException {
         Helper.valueCheck(major, minor, patch);
         Helper.typeCheck(type);
-        return new Version<>(major, minor, patch, type, (type == defaultType));
+        return new Version<>(major, minor, patch, type, (type == defaultType), comparator);
     }
 
     public Version<T> parseVersion(String versionString) throws VersionParseException {
@@ -89,14 +90,14 @@ public class VersionFactory<T extends Enum<T>> {
             if (split.length == 1) {
                 type = defaultType;
             } else {
-                type = Enum.valueOf(tClass, split[1].toUpperCase());
+                type = parser.parse(split[1]);
             }
 
             if ((major < 0) || (minor < 0) || (patch < 0)) {
                 throw new VersionParseException(versionString);
             }
 
-            return new Version<>(major, minor, patch, type, (type == defaultType));
+            return new Version<>(major, minor, patch, type, (type == defaultType), comparator);
         } catch (IllegalArgumentException e) {
             throw new VersionParseException(versionString, e);
         }
@@ -107,6 +108,45 @@ public class VersionFactory<T extends Enum<T>> {
             return Optional.of(parseVersion(versionString));
         } catch (VersionParseException ignored) {
             return Optional.empty();
+        }
+    }
+
+    public static class Builder<T extends Enum<T>> {
+        private final Class<T> tClass;
+        private T defaultType = null;
+        private VersionTypeParser<T> parser = null;
+        private Comparator<T> comparator = null;
+
+        private Builder(Class<T> tClass) {
+            this.tClass = tClass;
+        }
+
+        public Builder<T> withDefaultType(T defaultType) {
+            this.defaultType = defaultType;
+            return this;
+        }
+
+        public Builder<T> withVersionTypeParser(VersionTypeParser<T> parser) {
+            this.parser = parser;
+            return this;
+        }
+
+        public Builder<T> withTypeComparator(Comparator<T> comparator) {
+            this.comparator = comparator;
+            return this;
+        }
+
+        public VersionFactory<T> build() {
+            if (defaultType == null) {
+                defaultType = Collections.max(Arrays.asList(tClass.getEnumConstants()));
+            }
+            if (parser == null) {
+                parser = version -> Enum.valueOf(tClass, version.toUpperCase());
+            }
+            if (comparator == null) {
+                comparator = Enum::compareTo;
+            }
+            return new VersionFactory<>(defaultType, parser, comparator);
         }
     }
 }

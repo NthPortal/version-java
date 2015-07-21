@@ -36,25 +36,29 @@ package com.github.nthportal.version;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
+import java.util.Comparator;
+
 public class Version<T extends Enum<T>> implements Comparable<Version<T>> {
     public final int major;
     public final int minor;
     public final int patch;
     public final T type;
-    private final boolean defaultType;
+    private final boolean isDefaultType;
+    private final Comparator<T> comparator;
 
-    Version(int major, int minor, int patch, T type, boolean defaultType) {
+    Version(int major, int minor, int patch, T type, boolean isDefaultType, Comparator<T> comparator) {
         this.major = major;
         this.minor = minor;
         this.patch = patch;
         this.type = type;
-        this.defaultType = defaultType;
+        this.isDefaultType = isDefaultType;
+        this.comparator = comparator;
     }
 
     @Override
     public String toString() {
         return major + "." + minor + "." + patch +
-                (defaultType ? "" : ("-" + type.toString()));
+                (isDefaultType ? "" : ("-" + type.toString()));
     }
 
     @Override
@@ -92,7 +96,7 @@ public class Version<T extends Enum<T>> implements Comparable<Version<T>> {
         return  (major != o.major)    ? Integer.compare(major, o.major)
                 : ((minor != o.minor) ? Integer.compare(minor, o.minor)
                 : ((patch != o.patch) ? Integer.compare(patch, o.patch)
-                : type.compareTo(o.type)                            ));
+                : comparator.compare(type, o.type)                   ));
     }
 
     public Checker<T> checker() {
